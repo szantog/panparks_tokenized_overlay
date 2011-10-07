@@ -1,0 +1,7 @@
+<?php
+
+/**
+ * @file 
+ * Provides an image effect for adding text to an image as an overlay, using a text field 
+ * as source in the same file entity.
+ */
