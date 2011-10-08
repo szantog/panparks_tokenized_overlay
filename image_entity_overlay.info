@@ -5,3 +5,4 @@ version = 7.x-1.x-dev
 package = Media
 dependencies[] = image
 dependencies[] = file_entity
+dependencies[] = textimage
