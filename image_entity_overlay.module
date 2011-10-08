@@ -5,3 +5,44 @@
  * Provides an image effect for adding text to an image as an overlay, using a text field 
  * as source in the same file entity.
  */
+
+/**
+ * Implements hook_image_effect_info().
+ */
+function image_entity_overlay_image_effect_info() {
+  $effects = array();
+  $effects['image_entity_overlay'] = array(
+    'label' => t('Text overlay'),
+    'help' => t('Add text to the image as an overlay, using a text field as source in the same file entity.'),
+    'effect callback' => 'image_entity_overlay_effect',
+  );
+  return $effects;
+}
+
+/**
+ * Image effect callback; add text to the image as an overlay.
+ */
+function image_entity_overlay_effect(&$image, $data) {
+  $files = entity_load('file', FALSE, array('uri' => $image->source));
+  $file = !empty($files) ? reset($files) : FALSE;
+  $text_source_field = field_get_items('file', $file, 'field_image_desc');
+  $text = $text_source_field[0]['safe_value'];
+  
+  $textimage_preset = _textimage_preset_load('Alpha');
+  $textimage_resource = textimage_image_from_preset($textimage_preset, $text);
+  $text_width = imagesx($textimage_resource);
+  $text_height = imagesy($textimage_resource);
+  
+  imagealphablending($image->resource, TRUE);
+  imagecopy($image->resource, $textimage_resource, 5, 5, 0, 0, $text_width, $text_height);
+  return TRUE;
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function image_entity_overlay_entity_update($entity, $type) {
+  if ($type == 'file' && $entity->type == 'image') {
+    image_path_flush($entity->uri);
+  }
+}
