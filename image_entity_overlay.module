@@ -15,6 +15,7 @@ function image_entity_overlay_image_effect_info() {
     'label' => t('Text overlay'),
     'help' => t('Add text to the image as an overlay, using a text field as source in the same file entity.'),
     'effect callback' => 'image_entity_overlay_effect',
+    'form callback' => 'image_entity_overlay_form',
   );
   return $effects;
 }
@@ -23,13 +24,19 @@ function image_entity_overlay_image_effect_info() {
  * Image effect callback; add text to the image as an overlay.
  */
 function image_entity_overlay_effect(&$image, $data) {
-  $files = entity_load('file', FALSE, array('uri' => $image->source));
-  $file = !empty($files) ? reset($files) : FALSE;
-  $text_source_field = field_get_items('file', $file, 'field_image_desc');
-  $text = $text_source_field[0]['safe_value'];
+  // If we're manipulating the sample image, we have to provide a sample text,
+  // because there is no file entity in this case.
+  if ($image->source == 'modules/image/sample.png') {
+    $text = t('Sample text');
+  }
+  else {
+    $files = entity_load('file', FALSE, array('uri' => $image->source));
+    $file = !empty($files) ? reset($files) : FALSE;
+    $text = token_replace($data['text'], array('file' => $file));
+  }
   
   $textimage_preset = _textimage_preset_load('Alpha');
-  $textimage_resource = textimage_image_from_preset($textimage_preset, $text);
+  $textimage_resource = textimage_image_from_preset($textimage_preset, check_plain($text));
   $text_width = imagesx($textimage_resource);
   $text_height = imagesy($textimage_resource);
   
@@ -46,3 +53,24 @@ function image_entity_overlay_entity_update($entity, $type) {
     image_path_flush($entity->uri);
   }
 }
+
+/**
+ * Form builder; configuration settings for the text overlay effect.
+ */
+function image_entity_overlay_form($data) {
+  $form = array();
+  $form['text'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Text'),
+    '#description' => t('The text to use when place overlay onto the image.'),
+    '#default_value' => isset($data['text']) ? $data['text'] : '',
+    '#required' => TRUE,
+    '#size' => 90,
+  );
+  $form['tokens'] = array(
+    '#theme' => 'token_tree',
+    '#token_types' => array('file'),
+  );
+  return $form;
+}
+ 
