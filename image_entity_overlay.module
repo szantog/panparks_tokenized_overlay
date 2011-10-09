@@ -24,6 +24,14 @@ function image_entity_overlay_image_effect_info() {
  * Image effect callback; add text to the image as an overlay.
  */
 function image_entity_overlay_effect(&$image, $data) {
+  // Verify that Drupal is using the PHP GD library for image manipulations
+  // since this effect depends on functions in the GD library.
+  if ($image->toolkit != 'gd') {
+    watchdog('image', 'Creating text overlay failed on %path. Using non GD toolkit.', 
+      array('%path' => $image->source), WATCHDOG_ERROR);
+    return FALSE;
+  }
+  
   // If we're manipulating the sample image, we have to provide a sample text,
   // because there is no file entity in this case.
   if ($image->source == 'modules/image/sample.png') {
