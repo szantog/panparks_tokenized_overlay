@@ -2,20 +2,19 @@
 
 /**
  * @file 
- * Provides an image effect for adding text to an image as an overlay, using a text field 
- * as source in the same file entity.
+ * Provides an image effect for adding overlay text to an image, using tokens in the same file entity.
  */
 
 /**
  * Implements hook_image_effect_info().
  */
-function image_entity_overlay_image_effect_info() {
+function tokenized_overlay_image_effect_info() {
   $effects = array();
-  $effects['image_entity_overlay'] = array(
-    'label' => t('Text overlay'),
-    'help' => t('Add text to the image as an overlay, using a text field as source in the same file entity.'),
-    'effect callback' => 'image_entity_overlay_effect',
-    'form callback' => 'image_entity_overlay_form',
+  $effects['tokenized_overlay'] = array(
+    'label' => t('Tokenized overlay'),
+    'help' => t('Add overlay text to an image, using tokens in the same file entity.'),
+    'effect callback' => 'tokenized_overlay_effect',
+    'form callback' => 'tokenized_overlay_form',
   );
   return $effects;
 }
@@ -23,7 +22,7 @@ function image_entity_overlay_image_effect_info() {
 /**
  * Image effect callback; add text to the image as an overlay.
  */
-function image_entity_overlay_effect(&$image, $data) {
+function tokenized_overlay_effect(&$image, $data) {
   // Verify that Drupal is using the PHP GD library for image manipulations
   // since this effect depends on functions in the GD library.
   if ($image->toolkit != 'gd') {
@@ -48,7 +47,7 @@ function image_entity_overlay_effect(&$image, $data) {
   $text_width = imagesx($textimage_resource);
   $text_height = imagesy($textimage_resource);
   
-  $pos = image_entity_overlay_position(
+  $pos = tokenized_overlay_position(
     $image->info['width'], $image->info['height'], $text_width, $text_height, 
     $data['position_settings']['position'], 
     $data['position_settings']['x_offset'], 
@@ -63,7 +62,7 @@ function image_entity_overlay_effect(&$image, $data) {
 /**
  * Calculate the position of the overlay text.
  */
-function image_entity_overlay_position($image_width, $image_height, $text_width, $text_height, $position, $x_offset, $y_offset) {
+function tokenized_overlay_position($image_width, $image_height, $text_width, $text_height, $position, $x_offset, $y_offset) {
   $result = array(
     'x' => $x_offset,
     'y' => $y_offset,
@@ -81,7 +80,7 @@ function image_entity_overlay_position($image_width, $image_height, $text_width,
 /**
  * Implements hook_entity_update().
  */
-function image_entity_overlay_entity_update($entity, $type) {
+function tokenized_overlay_entity_update($entity, $type) {
   if ($type == 'file' && $entity->type == 'image') {
     image_path_flush($entity->uri);
   }
@@ -90,7 +89,7 @@ function image_entity_overlay_entity_update($entity, $type) {
 /**
  * Form builder; configuration settings for the text overlay effect.
  */
-function image_entity_overlay_form($data) {
+function tokenized_overlay_form($data) {
   $form = array();
   
   $result = db_query("SELECT pid, name FROM {textimage_preset} ORDER BY name");

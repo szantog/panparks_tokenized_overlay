@@ -1,0 +1,9 @@
+name = Tokenized Overlay
+description = "Provides an image effect for adding overlay text to an image, using tokens in the same file entity."
+core = 7.x
+version = 7.x-1.x-dev
+package = Media
+dependencies[] = image
+dependencies[] = file_entity
+dependencies[] = textimage
+dependencies[] = token
