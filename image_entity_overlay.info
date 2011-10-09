@@ -6,3 +6,4 @@ package = Media
 dependencies[] = image
 dependencies[] = file_entity
 dependencies[] = textimage
+dependencies[] = token
