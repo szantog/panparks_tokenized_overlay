@@ -59,18 +59,86 @@ function image_entity_overlay_entity_update($entity, $type) {
  */
 function image_entity_overlay_form($data) {
   $form = array();
-  $form['text'] = array(
+  
+  $result = db_query("SELECT pid, name FROM {textimage_preset} ORDER BY name");
+  $preset_list = array();
+  foreach ($result as $preset) {
+    $preset_list[$preset->pid] = $preset->name;
+  }
+  if (empty($preset_list)) {
+    drupal_set_message(t('<a href="@add-preset">A Textimage preset</a> is needed to use this image effect.', 
+      array('@add-preset' => url('admin/config/media/textimage/preset/new'))), 'warning');
+  }
+  
+  $form['overlay_text_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Overlay Text Settings'),
+  );
+  $form['overlay_text_settings']['textimage_preset'] = array(
+    '#type' => 'select',
+    '#title' => t('Textimage preset'),
+    '#options' => $preset_list,
+    '#default_value' => isset($data['overlay_text_settings']['textimage_preset']) ? 
+      $data['overlay_text_settings']['textimage_preset'] : '',
+    '#description' => t('One of <a href="@presets">the Textimage presets</a> to be used for rendering the text.',
+      array('@presets' => url('admin/config/media/textimage'))),
+    '#required' => TRUE,
+  );
+  $form['overlay_text_settings']['text'] = array(
     '#type' => 'textfield',
     '#title' => t('Text'),
     '#description' => t('The text to use when place overlay onto the image.'),
-    '#default_value' => isset($data['text']) ? $data['text'] : '',
+    '#default_value' => isset($data['overlay_text_settings']['text']) ? 
+      $data['overlay_text_settings']['text'] : '',
     '#required' => TRUE,
     '#size' => 90,
   );
-  $form['tokens'] = array(
+  $form['overlay_text_settings']['replacement_patterns'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Replacement patterns'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['overlay_text_settings']['replacement_patterns']['tokens'] = array(
     '#theme' => 'token_tree',
     '#token_types' => array('file'),
   );
-  return $form;
+  $form['position_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Position Settings'),
+  );
+  $form['position_settings']['position'] = array(
+    '#title' => t('Position'),
+    '#type' => 'radios',
+    '#options' => array(
+      'bottom-left' => t('Bottom left'),
+      'bottom-right' => t('Bottom right'),
+      'top-left' => t('Top left'),
+      'top-right' => t('Top right'),
+    ),
+    '#description' => t('Text overlay position on the image.'),
+    '#default_value' => isset($data['position_settings']['position']) ? 
+      $data['position_settings']['position'] : 'bottom-left',
+    '#required' => TRUE,
+  );
+  $form['position_settings']['x_offset'] = array(
+    '#type' => 'textfield',
+    '#title' => t('X offset'),
+    '#description' => t('Distance from the left/right margin of the image in pixels.'),
+    '#default_value' => isset($data['position_settings']['x_offset']) ? 
+      $data['position_settings']['x_offset'] : 10,
+    '#required' => TRUE,
+    '#size' => 3,
+  );
+  $form['position_settings']['y_offset'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Y offset'),
+    '#description' => t('Distance from the bottom/top margin of the image in pixels.'),
+    '#default_value' => isset($data['position_settings']['y_offset']) ? 
+      $data['position_settings']['y_offset'] : 10,
+    '#required' => TRUE,
+    '#size' => 3,
+  );
+  return $form; 
 }
  
