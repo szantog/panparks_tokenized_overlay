@@ -32,17 +32,42 @@ function image_entity_overlay_effect(&$image, $data) {
   else {
     $files = entity_load('file', FALSE, array('uri' => $image->source));
     $file = !empty($files) ? reset($files) : FALSE;
-    $text = token_replace($data['text'], array('file' => $file));
+    $text = token_replace($data['overlay_text_settings']['text'], array('file' => $file));
   }
   
-  $textimage_preset = _textimage_preset_load('Alpha');
+  $textimage_preset = _textimage_preset_load($data['overlay_text_settings']['textimage_preset']);
   $textimage_resource = textimage_image_from_preset($textimage_preset, check_plain($text));
   $text_width = imagesx($textimage_resource);
   $text_height = imagesy($textimage_resource);
   
+  $pos = image_entity_overlay_position(
+    $image->info['width'], $image->info['height'], $text_width, $text_height, 
+    $data['position_settings']['position'], 
+    $data['position_settings']['x_offset'], 
+    $data['position_settings']['y_offset']
+  );
+  
   imagealphablending($image->resource, TRUE);
-  imagecopy($image->resource, $textimage_resource, 5, 5, 0, 0, $text_width, $text_height);
+  imagecopy($image->resource, $textimage_resource, $pos['x'], $pos['y'], 0, 0, $text_width, $text_height);
   return TRUE;
+}
+
+/**
+ * Calculate the position of the overlay text.
+ */
+function image_entity_overlay_position($image_width, $image_height, $text_width, $text_height, $position, $x_offset, $y_offset) {
+  $result = array(
+    'x' => $x_offset,
+    'y' => $y_offset,
+  );
+  $pos_parts = explode('-', $position);
+  if ($pos_parts[0] == 'bottom') {
+    $result['y'] = $image_height - $y_offset - $text_height;
+  }
+  if ($pos_parts[1] == 'right') {
+    $result['x'] = $image_width - $x_offset - $text_width;
+  }
+  return $result;
 }
 
 /**
