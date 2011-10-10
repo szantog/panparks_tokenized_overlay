@@ -135,6 +135,14 @@ function tokenized_overlay_form($data) {
     '#theme' => 'token_tree',
     '#token_types' => array('file'),
   );
+  $form['overlay_text_settings']['fallback_text'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Fallback text'),
+    '#description' => t('This text will be used when one of the tokens in the defined text above returns an empty string (e.g. when a non-required field in the file entity has no value). You can leave it empty. Do not use tokens here.'),
+    '#default_value' => isset($data['overlay_text_settings']['fallback_text']) ? 
+      $data['overlay_text_settings']['fallback_text'] : '',
+    '#size' => 90,
+  );
   $form['position_settings'] = array(
     '#type' => 'fieldset',
     '#title' => t('Position Settings'),
