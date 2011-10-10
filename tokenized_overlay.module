@@ -31,15 +31,17 @@ function tokenized_overlay_effect(&$image, $data) {
     return FALSE;
   }
   
-  // If we're manipulating the sample image, we have to provide a sample text,
-  // because there is no file entity in this case.
-  if ($image->source == 'modules/image/sample.png') {
-    $text = t('Sample text');
-  }
-  else {
-    $files = entity_load('file', FALSE, array('uri' => $image->source));
-    $file = !empty($files) ? reset($files) : FALSE;
-    $text = token_replace($data['overlay_text_settings']['text'], array('file' => $file));
+  
+  $text = tokenized_overlay_text($image->source, 
+    $data['overlay_text_settings']['text'], 
+    $data['overlay_text_settings']['check_empty_token_values'],
+    $data['overlay_text_settings']['fallback_text']
+  );
+  if (!$text) {
+    // In this case the replaced text contains some empty value, and because of this we
+    // don't want to place it onto the image, but there is no specified fallback text.
+    // So we return without any image manipulation.
+    return TRUE;
   }
   
   $textimage_preset = _textimage_preset_load($data['overlay_text_settings']['textimage_preset']);
@@ -57,6 +59,56 @@ function tokenized_overlay_effect(&$image, $data) {
   imagealphablending($image->resource, TRUE);
   imagecopy($image->resource, $textimage_resource, $pos['x'], $pos['y'], 0, 0, $text_width, $text_height);
   return TRUE;
+}
+
+/**
+ * Returns the text which will be placed onto the image.
+ */
+function tokenized_overlay_text($image_source, $text, $check_empty_token_values = FALSE, $fallback_text = '') {
+  // If we're manipulating the sample image, we have to provide a sample text,
+  // because there is no file entity in this case.
+  if ($image_source == 'modules/image/sample.png') {
+    return t('Sample text');
+  }
+  
+  $files = entity_load('file', FALSE, array('uri' => $image_source));
+  $file = !empty($files) ? reset($files) : FALSE;
+  
+  if ($check_empty_token_values) {
+    $options = array('callback' => 'tokenized_overlay_replace_empty_token_value');
+    $replaced_text = token_replace($text, array('file' => $file), $options);
+    // The post process token replacement callback put '##empty##' in place of 
+    // empty token values.
+    if (strpos($replaced_text, '##empty##') !== FALSE) {
+      // If we find a string like this, that means there is an empty token value in the
+      // replaced string, so returns the fallback text instead, unless it's not empty.
+      if (drupal_strlen(trim($fallback_text)) != 0) {
+        return $fallback_text;
+      }
+      else {
+        // There is no defined fallback text, return FALSE, which means there will
+        // be no image manipulation.
+        return FALSE;
+      }
+    }
+    // There is no empty token value, the replaced text can be returned as is.
+    return $replaced_text;
+  }
+  
+  // No need to check empty token values, returns the replaced text anyway.
+  return token_replace($text, array('file' => $file));
+}
+
+/**
+ * Post-process token replacement callback; change value to '##empty##' if a
+ * token has no value.
+ */
+function tokenized_overlay_replace_empty_token_value(&$replacements) {
+  foreach ($replacements as &$value) {
+    if (drupal_strlen(trim($value)) == 0) {
+      $value = '##empty##';
+    }
+  }
 }
 
 /**
@@ -135,13 +187,26 @@ function tokenized_overlay_form($data) {
     '#theme' => 'token_tree',
     '#token_types' => array('file'),
   );
+  $form['overlay_text_settings']['check_empty_token_values'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Check empty token values'),
+    '#default_value' => isset($data['overlay_text_settings']['check_empty_token_values']) ? 
+      $data['overlay_text_settings']['check_empty_token_values'] : 0,
+    '#description' => t('In some cases token values can be empty (e.g. when a non-required field in the file entity has no value). You can decide wether you use the replaced text anyway, with the missing token value, or define a fallback text for this case.')
+  );
   $form['overlay_text_settings']['fallback_text'] = array(
     '#type' => 'textfield',
     '#title' => t('Fallback text'),
-    '#description' => t('This text will be used when one of the tokens in the defined text above returns an empty string (e.g. when a non-required field in the file entity has no value). You can leave it empty. Do not use tokens here.'),
+    '#description' => t('If checking empty token values is enabled, this text will be used when one of the tokens in the configured text above returns an empty string. You can leave it empty, in this case there will be no image manipulation by this image effect at all. Do not use tokens here.'),
     '#default_value' => isset($data['overlay_text_settings']['fallback_text']) ? 
       $data['overlay_text_settings']['fallback_text'] : '',
     '#size' => 90,
+    '#states' => array(
+      'visible' => array( 
+        ':input[name="data[overlay_text_settings][check_empty_token_values]"]' => 
+          array('checked' => TRUE),
+      ),
+    ),
   );
   $form['position_settings'] = array(
     '#type' => 'fieldset',
