@@ -45,7 +45,7 @@ function tokenized_overlay_effect(&$image, $data) {
   }
   
   $textimage_preset = _textimage_preset_load($data['overlay_text_settings']['textimage_preset']);
-  $textimage_resource = textimage_image_from_preset($textimage_preset, check_plain($text));
+  $textimage_resource = textimage_image_from_preset($textimage_preset, $text);
   $text_width = imagesx($textimage_resource);
   $text_height = imagesy($textimage_resource);
   
