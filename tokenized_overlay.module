@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @file 
+ * @file
  * Provides an image effect for adding overlay text to an image, using tokens in the same file entity.
  */
 
@@ -26,14 +26,14 @@ function tokenized_overlay_effect(&$image, $data) {
   // Verify that Drupal is using the PHP GD library for image manipulations
   // since this effect depends on functions in the GD library.
   if ($image->toolkit != 'gd') {
-    watchdog('image', 'Creating text overlay failed on %path. Using non GD toolkit.', 
+    watchdog('image', 'Creating text overlay failed on %path. Using non GD toolkit.',
       array('%path' => $image->source), WATCHDOG_ERROR);
     return FALSE;
   }
-  
-  
-  $text = tokenized_overlay_text($image->source, 
-    $data['overlay_text_settings']['text'], 
+
+
+  $text = tokenized_overlay_text($image->source,
+    $data['overlay_text_settings']['text'],
     $data['overlay_text_settings']['check_empty_token_values'],
     $data['overlay_text_settings']['fallback_text']
   );
@@ -43,19 +43,19 @@ function tokenized_overlay_effect(&$image, $data) {
     // So we return without any image manipulation.
     return TRUE;
   }
-  
+
   $textimage_preset = _textimage_preset_load($data['overlay_text_settings']['textimage_preset']);
   $textimage_resource = textimage_image_from_preset($textimage_preset, $text);
   $text_width = imagesx($textimage_resource);
   $text_height = imagesy($textimage_resource);
-  
+
   $pos = tokenized_overlay_position(
-    $image->info['width'], $image->info['height'], $text_width, $text_height, 
-    $data['position_settings']['position'], 
-    $data['position_settings']['x_offset'], 
+    $image->info['width'], $image->info['height'], $text_width, $text_height,
+    $data['position_settings']['position'],
+    $data['position_settings']['x_offset'],
     $data['position_settings']['y_offset']
   );
-  
+
   imagealphablending($image->resource, TRUE);
   imagecopy($image->resource, $textimage_resource, $pos['x'], $pos['y'], 0, 0, $text_width, $text_height);
   return TRUE;
@@ -70,14 +70,14 @@ function tokenized_overlay_text($image_source, $text, $check_empty_token_values 
   if ($image_source == 'modules/image/sample.png') {
     return t('Sample text');
   }
-  
+
   $files = entity_load('file', FALSE, array('uri' => $image_source));
   $file = !empty($files) ? reset($files) : FALSE;
-  
+
   if ($check_empty_token_values) {
     $options = array('callback' => 'tokenized_overlay_replace_empty_token_value');
     $replaced_text = token_replace($text, array('file' => $file), $options);
-    // The post process token replacement callback put '##empty##' in place of 
+    // The post process token replacement callback put '##empty##' in place of
     // empty token values.
     if (strpos($replaced_text, '##empty##') !== FALSE) {
       // If we find a string like this, that means there is an empty token value in the
@@ -94,7 +94,7 @@ function tokenized_overlay_text($image_source, $text, $check_empty_token_values 
     // There is no empty token value, the replaced text can be returned as is.
     return $replaced_text;
   }
-  
+
   // No need to check empty token values, returns the replaced text anyway.
   return token_replace($text, array('file' => $file));
 }
@@ -143,17 +143,17 @@ function tokenized_overlay_entity_update($entity, $type) {
  */
 function tokenized_overlay_form($data) {
   $form = array();
-  
+
   $result = db_query("SELECT pid, name FROM {textimage_preset} ORDER BY name");
   $preset_list = array();
   foreach ($result as $preset) {
     $preset_list[$preset->pid] = $preset->name;
   }
   if (empty($preset_list)) {
-    drupal_set_message(t('<a href="@add-preset">A Textimage preset</a> is needed to use this image effect.', 
+    drupal_set_message(t('<a href="@add-preset">A Textimage preset</a> is needed to use this image effect.',
       array('@add-preset' => url('admin/config/media/textimage/preset/new'))), 'warning');
   }
-  
+
   $form['overlay_text_settings'] = array(
     '#type' => 'fieldset',
     '#title' => t('Overlay Text Settings'),
@@ -162,7 +162,7 @@ function tokenized_overlay_form($data) {
     '#type' => 'select',
     '#title' => t('Textimage preset'),
     '#options' => $preset_list,
-    '#default_value' => isset($data['overlay_text_settings']['textimage_preset']) ? 
+    '#default_value' => isset($data['overlay_text_settings']['textimage_preset']) ?
       $data['overlay_text_settings']['textimage_preset'] : '',
     '#description' => t('One of <a href="@presets">the Textimage presets</a> to be used for rendering the text.',
       array('@presets' => url('admin/config/media/textimage'))),
@@ -172,7 +172,7 @@ function tokenized_overlay_form($data) {
     '#type' => 'textfield',
     '#title' => t('Text'),
     '#description' => t('The text to use when place overlay onto the image.'),
-    '#default_value' => isset($data['overlay_text_settings']['text']) ? 
+    '#default_value' => isset($data['overlay_text_settings']['text']) ?
       $data['overlay_text_settings']['text'] : '',
     '#required' => TRUE,
     '#size' => 90,
@@ -190,7 +190,7 @@ function tokenized_overlay_form($data) {
   $form['overlay_text_settings']['check_empty_token_values'] = array(
     '#type' => 'checkbox',
     '#title' => t('Check empty token values'),
-    '#default_value' => isset($data['overlay_text_settings']['check_empty_token_values']) ? 
+    '#default_value' => isset($data['overlay_text_settings']['check_empty_token_values']) ?
       $data['overlay_text_settings']['check_empty_token_values'] : 0,
     '#description' => t('In some cases token values can be empty (e.g. when a non-required field in the file entity has no value). You can decide wether you use the replaced text anyway, with the missing token value, or define a fallback text for this case.')
   );
@@ -198,12 +198,12 @@ function tokenized_overlay_form($data) {
     '#type' => 'textfield',
     '#title' => t('Fallback text'),
     '#description' => t('If checking empty token values is enabled, this text will be used when one of the tokens in the configured text above returns an empty string. You can leave it empty, in this case there will be no image manipulation by this image effect at all. Do not use tokens here.'),
-    '#default_value' => isset($data['overlay_text_settings']['fallback_text']) ? 
+    '#default_value' => isset($data['overlay_text_settings']['fallback_text']) ?
       $data['overlay_text_settings']['fallback_text'] : '',
     '#size' => 90,
     '#states' => array(
-      'visible' => array( 
-        ':input[name="data[overlay_text_settings][check_empty_token_values]"]' => 
+      'visible' => array(
+        ':input[name="data[overlay_text_settings][check_empty_token_values]"]' =>
           array('checked' => TRUE),
       ),
     ),
@@ -222,7 +222,7 @@ function tokenized_overlay_form($data) {
       'top-right' => t('Top right'),
     ),
     '#description' => t('Text overlay position on the image.'),
-    '#default_value' => isset($data['position_settings']['position']) ? 
+    '#default_value' => isset($data['position_settings']['position']) ?
       $data['position_settings']['position'] : 'bottom-left',
     '#required' => TRUE,
   );
@@ -230,7 +230,7 @@ function tokenized_overlay_form($data) {
     '#type' => 'textfield',
     '#title' => t('X offset'),
     '#description' => t('Distance from the left/right margin of the image in pixels.'),
-    '#default_value' => isset($data['position_settings']['x_offset']) ? 
+    '#default_value' => isset($data['position_settings']['x_offset']) ?
       $data['position_settings']['x_offset'] : 10,
     '#required' => TRUE,
     '#size' => 3,
@@ -239,11 +239,11 @@ function tokenized_overlay_form($data) {
     '#type' => 'textfield',
     '#title' => t('Y offset'),
     '#description' => t('Distance from the bottom/top margin of the image in pixels.'),
-    '#default_value' => isset($data['position_settings']['y_offset']) ? 
+    '#default_value' => isset($data['position_settings']['y_offset']) ?
       $data['position_settings']['y_offset'] : 10,
     '#required' => TRUE,
     '#size' => 3,
   );
-  return $form; 
+  return $form;
 }
- 
+
