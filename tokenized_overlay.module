@@ -73,16 +73,30 @@ function tokenized_overlay_text($image_source, $text, $check_empty_token_values 
 
   $files = entity_load('file', FALSE, array('uri' => $image_source));
   $file = !empty($files) ? reset($files) : FALSE;
-  // The options for token_replace
-  $options = array();
 
   if ($check_empty_token_values) {
-    $options['callback'] = 'tokenized_overlay_replace_empty_token_value';
-    $options['fallback_text'] = $fallback_text;
+    $options = array('callback' => 'tokenized_overlay_replace_empty_token_value');
+    $replaced_text = token_replace($text, array('file' => $file), $options);
+    // The post process token replacement callback put '##empty##' in place of
+    // empty token values, if there aren't any token with value.
+    if (strpos($replaced_text, '##empty##') !== FALSE) {
+      // If we find a string like this, that means there is an empty token value in the
+      // replaced string, so returns the fallback text instead, unless it's not empty.
+      if (!is_null($fallback_text)) {
+        return $fallback_text;
+      }
+      else {
+        // There is no defined fallback text, return FALSE, which means there will
+        // be no image manipulation.
+        return FALSE;
+      }
+    }
+    // There is no empty token value, the replaced text can be returned as is.
+    return $replaced_text;
   }
 
   // No need to check empty token values, returns the replaced text anyway.
-  return token_replace($text, array('file' => $file), $options);
+  return token_replace($text, array('file' => $file));
 }
 
 /**
@@ -91,38 +105,26 @@ function tokenized_overlay_text($image_source, $text, $check_empty_token_values 
  */
 function tokenized_overlay_replace_empty_token_value(&$replacements, $data, $options) {
   $empty = TRUE;
-  foreach ($replacements as $value) {
+  foreach ($replacements as &$value) {
     if (drupal_strlen(trim($value)) != 0) {
-      // When take a not empty token value, we doesn't need to continue the empty examination process
       $empty = FALSE;
       break;
     }
+    else {
+      $value = '##empty##';
+    }
   }
 
-  // Process, if we have only one empty token value.
-  if ($empty) {
-    $replacements = array();
-    // If fallback text is set,
-    if (!is_null($options['fallback_text'])) {
-      $replacements[0] = $options['fallback_text'];
+  // We need to reset to previously set ##empty## value, if there are not empty token after it.
+  // If doesn't do it, a text with valid token value would be deleted too.
+  // @todo should find a better way for all this empty values checking process???
+  if (!$empty) {
+    foreach ($replacements as &$value) {
+      if ($value == '##empty##') {
+        $value = '';
+      }
     }
   }
-  // The post process token replacement callback put '##empty##' in place of
-  // empty token values.
-  if (strpos($replaced_text, '##empty##') !== FALSE) {
-    // If we find a string like this, that means there is an empty token value in the
-    // replaced string, so returns the fallback text instead, unless it's not empty.
-    if (drupal_strlen(trim($fallback_text)) != 0) {
-      return $fallback_text;
-    }
-    else {
-      // There is no defined fallback text, return FALSE, which means there will
-      // be no image manipulation.
-      return FALSE;
-    }
-  }
-  // There is no empty token value, the replaced text can be returned as is.
-  return $replaced_text;
 }
 
 /**
